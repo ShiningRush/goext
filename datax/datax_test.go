@@ -6,24 +6,24 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	s := Set{}
+	s := NewSet()
 	assert.False(t, s.Has("test_key"), "initial set should hot have any key")
-	s.Set("test_key")
+	s.Add("test_key")
 	assert.True(t, s.Has("test_key"), "set should have key when set")
-	assert.False(t, s.TrySet("test_key"), "try set should false when set a existed key")
-	assert.True(t, s.TrySet("test_key2"), "try set should true when set a non-existed key")
+	assert.False(t, s.TryAdd("test_key"), "try set should false when set a existed key")
+	assert.True(t, s.TryAdd("test_key2"), "try set should true when set a non-existed key")
 	assert.True(t, s.Has("test_key2"), "set should have key when try set success")
-	s.Delete("test_key2")
+	s.Remove("test_key2")
 	assert.False(t, s.Has("test_key2"), "try set should false after delete key")
 }
 
 func BenchmarkSetWithPtr(b *testing.B) {
-	s := Set{}
+	s := NewSet()
 	k := &Empty{}
 	for i := 0; i < b.N; i++ {
-		s.Set(k)
+		s.Add(k)
 		s.Has(k)
-		s.Delete(k)
+		s.Remove(k)
 	}
 }
 
@@ -38,11 +38,11 @@ func BenchmarkMapWithPtr(b *testing.B) {
 }
 
 func BenchmarkSetWithString(b *testing.B) {
-	s := Set{}
+	s := NewSet()
 	for i := 0; i < b.N; i++ {
-		s.Set("test_key")
+		s.Add("test_key")
 		s.Has("test_key")
-		s.Delete("test_key")
+		s.Remove("test_key")
 	}
 }
 

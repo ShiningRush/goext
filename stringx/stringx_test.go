@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestHaveItem(t *testing.T) {
+func TestHasItem(t *testing.T) {
 	tests := []struct {
 		caseDesc  string
 		giveArray []string
@@ -34,7 +34,42 @@ func TestHaveItem(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.caseDesc, func(t *testing.T) {
-			ret := HaveItem(tc.giveArray, tc.giveItem)
+			ret := HasItem(tc.giveArray, tc.giveItem)
+			assert.Equal(t, tc.wantRet, ret)
+		})
+	}
+}
+
+func TestIsSuperset(t *testing.T) {
+	tests := []struct {
+		caseDesc   string
+		giveSrc    []string
+		giveSubset []string
+		wantRet    bool
+	}{
+		{
+			caseDesc:   "is",
+			giveSrc:    []string{"a", "b", "c"},
+			giveSubset: []string{"a", "c"},
+			wantRet:    true,
+		},
+		{
+			caseDesc:   "not is",
+			giveSrc:    []string{"a", "b", "c"},
+			giveSubset: []string{"d", "c"},
+			wantRet:    false,
+		},
+		{
+			caseDesc:   "empty",
+			giveSrc:    nil,
+			giveSubset: nil,
+			wantRet:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			ret := IsSuperset(tc.giveSrc, tc.giveSubset)
 			assert.Equal(t, tc.wantRet, ret)
 		})
 	}

@@ -2,23 +2,31 @@ package datax
 
 type Empty struct{}
 
-type Set map[interface{}]Empty
+func NewSet() *Set {
+	return &Set{
+		idx: map[interface{}]Empty{},
+	}
+}
 
-func (s Set) Has(key interface{}) bool {
-	_, ok := s[key]
+type Set struct {
+	idx map[interface{}]Empty
+}
+
+func (s *Set) Has(key interface{}) bool {
+	_, ok := s.idx[key]
 	return ok
 }
-func (s Set) Set(key interface{}) {
-	s[key] = Empty{}
+func (s *Set) Add(key interface{}) {
+	s.idx[key] = Empty{}
 }
 
-func (s Set) TrySet(key interface{}) bool {
+func (s *Set) TryAdd(key interface{}) bool {
 	if s.Has(key) {
 		return false
 	}
-	s[key] = Empty{}
+	s.idx[key] = Empty{}
 	return true
 }
-func (s Set) Delete(key interface{}) {
-	delete(s, key)
+func (s *Set) Remove(key interface{}) {
+	delete(s.idx, key)
 }
