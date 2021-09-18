@@ -1,6 +1,6 @@
 package stringx
 
-import "github.com/ShiningRush/goext/datax"
+import "github.com/shiningrush/goext/datax"
 
 // HasItem check if the "item" is in "strs"
 func HasItem(strs []string, item string) bool {

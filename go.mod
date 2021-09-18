@@ -1,4 +1,4 @@
-module github.com/ShiningRush/goext
+module github.com/shiningrush/goext
 
 go 1.15
 
