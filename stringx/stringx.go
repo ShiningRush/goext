@@ -25,3 +25,22 @@ func IsSuperset(src, subset []string) bool {
 	}
 	return true
 }
+
+// Intersect get intersection of two strings
+func Intersect(aArr, bArr []string) (intersection []string) {
+	if len(aArr) == 0 || len(bArr) == 0 {
+		return
+	}
+
+	aSet := datax.NewSet()
+	for _, v := range aArr {
+		aSet.Add(v)
+	}
+
+	for _, v := range bArr {
+		if aSet.Has(v) {
+			intersection = append(intersection, v)
+		}
+	}
+	return
+}

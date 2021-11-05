@@ -74,3 +74,38 @@ func TestIsSuperset(t *testing.T) {
 		})
 	}
 }
+
+func TestIntersect(t *testing.T) {
+	tests := []struct {
+		caseDesc string
+		giveA    []string
+		giveB    []string
+		wantRet  []string
+	}{
+		{
+			caseDesc: "sanity",
+			giveA:    []string{"a", "b", "c"},
+			giveB:    []string{"a", "c", "e"},
+			wantRet:  []string{"a", "c"},
+		},
+		{
+			caseDesc: "a-empty",
+			giveA:    nil,
+			giveB:    []string{"a", "c"},
+			wantRet:  nil,
+		},
+		{
+			caseDesc: "b-empty",
+			giveA:    []string{"a", "b", "c"},
+			giveB:    nil,
+			wantRet:  nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			ret := Intersect(tc.giveA, tc.giveB)
+			assert.Equal(t, tc.wantRet, ret)
+		})
+	}
+}
