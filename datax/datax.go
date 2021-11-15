@@ -27,6 +27,11 @@ func (s *Set) TryAdd(key interface{}) bool {
 	s.idx[key] = Empty{}
 	return true
 }
+
 func (s *Set) Remove(key interface{}) {
 	delete(s.idx, key)
+}
+
+func (s *Set) Len() int {
+	return len(s.idx)
 }
