@@ -1,6 +1,8 @@
 package parallel
 
-import "sync"
+import (
+	"sync"
+)
 
 type StreamSession struct {
 	inputChan       chan<- interface{}
@@ -22,10 +24,10 @@ func (s *StreamSession) initAutoReceive() {
 	}()
 }
 
-// Send a item to workers
+// Send an item to workers
 func (s *StreamSession) Send(item interface{}) {
 	if s.inputChanClosed {
-		panic("you can not send item to stream after closed session")
+		panic("you can not send item to a closed session")
 	}
 	s.inputChan <- item
 }
@@ -35,7 +37,6 @@ func (s *StreamSession) Wait() {
 	s.CompleteSend()
 	for range s.receiveChanClosed {
 	}
-
 	return
 }
 

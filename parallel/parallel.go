@@ -1,6 +1,7 @@
 package parallel
 
 import (
+	"runtime"
 	"sync"
 )
 
@@ -58,10 +59,14 @@ func StreamDo(work StreamWork, ops ...OptionOp) *StreamSession {
 		receiveChan:       receiveChan,
 		receiveChanClosed: make(chan struct{}),
 	}
+	runtime.SetFinalizer(s, ensureFreeSession)
 	if !opt.receiveDataExplicit {
 		s.initAutoReceive()
 	}
 	return s
+}
+func ensureFreeSession(session *StreamSession) {
+	session.CompleteSend()
 }
 
 func dispatch(inputChan <-chan interface{}, workerChanList []chan<- interface{}) {
