@@ -17,8 +17,9 @@ func NewOption() *Option {
 type Option struct {
 	workerNumber int
 
-	// stream option
-	ignoreResult bool
+	// --- stream options start
+	receiveDataExplicit bool
+	ignoreResult        bool
 }
 type OptionOp func(opt *Option)
 
@@ -28,8 +29,16 @@ func WorkerNumber(num int) OptionOp {
 	}
 }
 
+// IgnoreResult used in stream parallel, if you do not care about result, use it.
 func IgnoreResult() OptionOp {
 	return func(opt *Option) {
 		opt.ignoreResult = true
+	}
+}
+
+// ReceiveDataFromChan used in stream parallel, it means that you need receive data from chan not memory cached
+func ReceiveDataFromChan() OptionOp {
+	return func(opt *Option) {
+		opt.receiveDataExplicit = true
 	}
 }

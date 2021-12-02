@@ -34,27 +34,34 @@ func Do(work Work, ops ...OptionOp) (errs []error) {
 	return
 }
 
-type StreamOutput struct {
+type StreamPayload struct {
 	Result interface{}
 	Err    error
 }
 
-func (o *StreamOutput) HasError() bool {
+func (o *StreamPayload) HasError() bool {
 	return o.Err != nil
 }
 
 type StreamWork func(workerIdx int, item interface{}) (ret interface{}, err error)
 
-func StreamDo(work StreamWork, ops ...OptionOp) (inputChan chan<- interface{}, retChan <-chan *StreamOutput) {
+func StreamDo(work StreamWork, ops ...OptionOp) *StreamSession {
 	opt := InitialOption(ops)
 
-	rawInputChan := make(chan interface{})
-	inputChan = rawInputChan
+	inputChan := make(chan interface{})
 
-	workerChanList, retChan := initWorkers(work, opt)
-	dispatch(rawInputChan, workerChanList)
+	workerChanList, receiveChan := initWorkers(work, opt)
+	dispatch(inputChan, workerChanList)
 
-	return
+	s := &StreamSession{
+		inputChan:         inputChan,
+		receiveChan:       receiveChan,
+		receiveChanClosed: make(chan struct{}),
+	}
+	if !opt.receiveDataExplicit {
+		s.initAutoReceive()
+	}
+	return s
 }
 
 func dispatch(inputChan <-chan interface{}, workerChanList []chan<- interface{}) {
@@ -71,8 +78,8 @@ func dispatch(inputChan <-chan interface{}, workerChanList []chan<- interface{})
 	}()
 }
 
-func initWorkers(work StreamWork, opt *Option) (workerChanList []chan<- interface{}, retChan <-chan *StreamOutput) {
-	rawRetChan := make(chan *StreamOutput)
+func initWorkers(work StreamWork, opt *Option) (workerChanList []chan<- interface{}, retChan <-chan *StreamPayload) {
+	rawRetChan := make(chan *StreamPayload)
 	retChan = rawRetChan
 
 	var wg sync.WaitGroup
@@ -85,7 +92,7 @@ func initWorkers(work StreamWork, opt *Option) (workerChanList []chan<- interfac
 			for input := range inputCh {
 				ret, err := work(idx, input)
 				if !opt.ignoreResult {
-					rawRetChan <- &StreamOutput{
+					rawRetChan <- &StreamPayload{
 						Result: ret,
 						Err:    err,
 					}

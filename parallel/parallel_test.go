@@ -74,7 +74,7 @@ func TestStreamDo(t *testing.T) {
 		giveWork         StreamWork
 		giveWorkNum      int
 		giveIgnoreResult bool
-		wantRets         []*StreamOutput
+		wantRets         []*StreamPayload
 	}{
 		{
 			caseDesc: "sanity-default-worker",
@@ -89,7 +89,7 @@ func TestStreamDo(t *testing.T) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return item, nil
 			},
-			wantRets: []*StreamOutput{
+			wantRets: []*StreamPayload{
 				{Result: "item1"},
 				{Result: "item2"},
 				{Result: "item3"},
@@ -121,7 +121,7 @@ func TestStreamDo(t *testing.T) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return item, nil
 			},
-			wantRets: []*StreamOutput{
+			wantRets: []*StreamPayload{
 				{Result: "item1"},
 				{Result: "item2"},
 			},
@@ -136,7 +136,7 @@ func TestStreamDo(t *testing.T) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return item, nil
 			},
-			wantRets: []*StreamOutput{
+			wantRets: []*StreamPayload{
 				{Result: "item1"},
 			},
 		},
@@ -151,7 +151,7 @@ func TestStreamDo(t *testing.T) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return nil, errors.New("expected err")
 			},
-			wantRets: []*StreamOutput{
+			wantRets: []*StreamPayload{
 				{Result: nil, Err: errors.New("expected err")},
 				{Result: nil, Err: errors.New("expected err")},
 			},
@@ -168,17 +168,132 @@ func TestStreamDo(t *testing.T) {
 				ops = append(ops, WorkerNumber(tc.giveWorkNum))
 			}
 
-			inputChan, retChan := StreamDo(tc.giveWork, ops...)
+			session := StreamDo(tc.giveWork, ops...)
 
-			var rets []*StreamOutput
+			for _, v := range tc.giveInputs {
+				session.Send(v)
+			}
+
+			rets := session.ReceivedPayloads()
+			assert.ElementsMatch(t, rets, tc.wantRets)
+		})
+	}
+}
+
+func TestStreamDo_ReceiveFromChan(t *testing.T) {
+	tests := []struct {
+		caseDesc         string
+		giveInputs       []interface{}
+		giveWork         StreamWork
+		giveWorkNum      int
+		giveIgnoreResult bool
+		wantRets         []*StreamPayload
+	}{
+		{
+			caseDesc: "sanity-default-worker",
+			giveInputs: []interface{}{
+				"item1",
+				"item2",
+				"item3",
+			},
+			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+				assert.GreaterOrEqual(t, workerIdx, 0)
+
+				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+				return item, nil
+			},
+			wantRets: []*StreamPayload{
+				{Result: "item1"},
+				{Result: "item2"},
+				{Result: "item3"},
+			},
+		},
+		{
+			caseDesc: "sanity-default-worker-ignore-result",
+			giveInputs: []interface{}{
+				"item1",
+				"item2",
+				"item3",
+			},
+			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+				assert.GreaterOrEqual(t, workerIdx, 0)
+
+				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+				return item, nil
+			},
+			giveIgnoreResult: true,
+		},
+		{
+			caseDesc: "sanity-1-worker",
+			giveInputs: []interface{}{
+				"item1",
+				"item2",
+			},
+			giveWorkNum: 1,
+			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+				return item, nil
+			},
+			wantRets: []*StreamPayload{
+				{Result: "item1"},
+				{Result: "item2"},
+			},
+		},
+		{
+			caseDesc: "sanity-100-worker",
+			giveInputs: []interface{}{
+				"item1",
+			},
+			giveWorkNum: 100,
+			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+				return item, nil
+			},
+			wantRets: []*StreamPayload{
+				{Result: "item1"},
+			},
+		},
+		{
+			caseDesc: "all-failed",
+			giveInputs: []interface{}{
+				"item1",
+				"item2",
+			},
+			giveWorkNum: 100,
+			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+				return nil, errors.New("expected err")
+			},
+			wantRets: []*StreamPayload{
+				{Result: nil, Err: errors.New("expected err")},
+				{Result: nil, Err: errors.New("expected err")},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			var ops []OptionOp
+			ops = append(ops, ReceiveDataFromChan())
+			if tc.giveIgnoreResult {
+				ops = append(ops, IgnoreResult())
+			}
+			if tc.giveWorkNum > 0 {
+				ops = append(ops, WorkerNumber(tc.giveWorkNum))
+			}
+
+			session := StreamDo(tc.giveWork, ops...)
+
 			go func() {
 				for _, v := range tc.giveInputs {
-					inputChan <- v
+					session.Send(v)
 				}
-				close(inputChan)
+				session.CompleteSend()
 			}()
 
-			for v := range retChan {
+
+			var rets []*StreamPayload
+			for v := range session.ReceiveChan() {
 				rets = append(rets, v)
 			}
 			assert.ElementsMatch(t, rets, tc.wantRets)
