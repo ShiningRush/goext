@@ -291,7 +291,6 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				session.CompleteSend()
 			}()
 
-
 			var rets []*StreamPayload
 			for v := range session.ReceiveChan() {
 				rets = append(rets, v)

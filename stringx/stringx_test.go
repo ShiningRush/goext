@@ -42,34 +42,104 @@ func TestHasItem(t *testing.T) {
 
 func TestIsSuperset(t *testing.T) {
 	tests := []struct {
-		caseDesc   string
-		giveSrc    []string
-		giveSubset []string
-		wantRet    bool
+		caseDesc string
+		giveSrc  []string
+		giveDest []string
+		wantRet  bool
 	}{
 		{
-			caseDesc:   "is",
-			giveSrc:    []string{"a", "b", "c"},
-			giveSubset: []string{"a", "c"},
-			wantRet:    true,
+			caseDesc: "is",
+			giveSrc:  []string{"a", "b", "c"},
+			giveDest: []string{"a", "c"},
+			wantRet:  true,
 		},
 		{
-			caseDesc:   "not is",
-			giveSrc:    []string{"a", "b", "c"},
-			giveSubset: []string{"d", "c"},
-			wantRet:    false,
+			caseDesc: "not is",
+			giveSrc:  []string{"a", "b", "c"},
+			giveDest: []string{"d", "c"},
+			wantRet:  false,
 		},
 		{
-			caseDesc:   "empty",
-			giveSrc:    nil,
-			giveSubset: nil,
-			wantRet:    true,
+			caseDesc: "empty",
+			giveSrc:  nil,
+			giveDest: nil,
+			wantRet:  false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.caseDesc, func(t *testing.T) {
-			ret := IsSuperset(tc.giveSrc, tc.giveSubset)
+			ret := IsSuperset(tc.giveSrc, tc.giveDest)
+			assert.Equal(t, tc.wantRet, ret)
+		})
+	}
+}
+
+func TestIsSubset(t *testing.T) {
+	tests := []struct {
+		caseDesc string
+		giveSrc  []string
+		giveDest []string
+		wantRet  bool
+	}{
+		{
+			caseDesc: "is",
+			giveSrc:  []string{"a", "c"},
+			giveDest: []string{"a", "b", "c"},
+			wantRet:  true,
+		},
+		{
+			caseDesc: "self",
+			giveSrc:  []string{"a", "b", "c"},
+			giveDest: []string{"a", "b", "c"},
+			wantRet:  true,
+		},
+		{
+			caseDesc: "empty",
+			giveSrc:  nil,
+			giveDest: nil,
+			wantRet:  true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			ret := IsSubset(tc.giveSrc, tc.giveDest)
+			assert.Equal(t, tc.wantRet, ret)
+		})
+	}
+}
+
+func TestIsProperSubset(t *testing.T) {
+	tests := []struct {
+		caseDesc string
+		giveSrc  []string
+		giveDest []string
+		wantRet  bool
+	}{
+		{
+			caseDesc: "is",
+			giveSrc:  []string{"a", "c"},
+			giveDest: []string{"a", "b", "c"},
+			wantRet:  true,
+		},
+		{
+			caseDesc: "not is",
+			giveSrc:  []string{"a", "b", "c"},
+			giveDest: []string{"a", "b", "c"},
+			wantRet:  false,
+		},
+		{
+			caseDesc: "empty",
+			giveSrc:  nil,
+			giveDest: nil,
+			wantRet:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			ret := IsProperSubset(tc.giveSrc, tc.giveDest)
 			assert.Equal(t, tc.wantRet, ret)
 		})
 	}
@@ -105,7 +175,7 @@ func TestIntersect(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.caseDesc, func(t *testing.T) {
 			ret := Intersect(tc.giveA, tc.giveB)
-			assert.Equal(t, tc.wantRet, ret)
+			assert.ElementsMatch(t, tc.wantRet, ret)
 		})
 	}
 }
