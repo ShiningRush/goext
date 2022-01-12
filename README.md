@@ -1,4 +1,8 @@
 # go-ext
+[![Go Reference](https://pkg.go.dev/badge/github.com/ShiningRush/goext.svg)](https://pkg.go.dev/github.com/ShiningRush/goext)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shiningrush/goext)](https://goreportcard.com/report/github.com/shiningrush/goext)
+
+
 There are some useful functions and data-structure in development of golang.
 
 ## datax
