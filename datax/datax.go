@@ -135,8 +135,8 @@ func (s *Set) Union(another *Set) *Set {
 	return union
 }
 
-// Difference find the difference between s and another set
-func (s *Set) Difference(another *Set) *Set {
+// Diff find the difference between s and another set
+func (s *Set) Diff(another *Set) *Set {
 	diffSet := NewSet()
 	s.Loop(func(item interface{}) (breakLoop bool) {
 		if !another.Has(item) {

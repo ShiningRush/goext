@@ -1,8 +1,9 @@
 package stringx
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHasItem(t *testing.T) {
@@ -175,6 +176,41 @@ func TestIntersect(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.caseDesc, func(t *testing.T) {
 			ret := Intersect(tc.giveA, tc.giveB)
+			assert.ElementsMatch(t, tc.wantRet, ret)
+		})
+	}
+}
+
+func TestDiff(t *testing.T) {
+	tests := []struct {
+		caseDesc string
+		giveA    []string
+		giveB    []string
+		wantRet  []string
+	}{
+		{
+			caseDesc: "sanity",
+			giveA:    []string{"a", "b", "c"},
+			giveB:    []string{"a", "c", "e"},
+			wantRet:  []string{"b"},
+		},
+		{
+			caseDesc: "a-empty",
+			giveA:    nil,
+			giveB:    []string{"a", "c"},
+			wantRet:  nil,
+		},
+		{
+			caseDesc: "b-empty",
+			giveA:    []string{"a", "b", "c"},
+			giveB:    nil,
+			wantRet:  []string{"a", "b", "c"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			ret := Diff(tc.giveA, tc.giveB)
 			assert.ElementsMatch(t, tc.wantRet, ret)
 		})
 	}

@@ -44,3 +44,15 @@ func Intersect(aArr, bArr []string) (intersection []string) {
 	})
 	return
 }
+
+// Diff get differences of two strings
+func Diff(aArr, bArr []string) (diff []string) {
+	aSet := datax.NewSet().AddString(aArr...)
+	bSet := datax.NewSet().AddString(bArr...)
+
+	aSet.Diff(bSet).Loop(func(item interface{}) (breakLoop bool) {
+		diff = append(diff, item.(string))
+		return
+	})
+	return
+}
