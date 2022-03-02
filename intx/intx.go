@@ -2,9 +2,9 @@ package intx
 
 import "github.com/shiningrush/goext/datax"
 
-// HasItem test if the "item" is in "strs"
-func HasItem(strs []int, item int) bool {
-	for _, s := range strs {
+// HasItem test if the "item" is in "ints"
+func HasItem(ints []int, item int) bool {
+	for _, s := range ints {
 		if s == item {
 			return true
 		}

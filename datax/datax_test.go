@@ -20,6 +20,11 @@ func TestSet(t *testing.T) {
 	s.Remove("test_key1", "test_key2")
 	assert.False(t, s.Has("test_key2"), "set should return false after delete key")
 	assert.Equal(t, 1, s.Len(), "set should have 1 items")
+
+	// diff type test
+	var i uint = 10
+	s.AddInt32(10)
+	assert.False(t, s.Has(i), "set should not query when type diff")
 }
 
 func TestNewSetOperation(t *testing.T) {

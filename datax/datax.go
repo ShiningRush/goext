@@ -54,6 +54,36 @@ func (s *Set) AddInt(items ...int) *Set {
 	}
 	return s
 }
+func (s *Set) AddInt32(items ...int32) *Set {
+	for _, v := range items {
+		s.idx[v] = Empty{}
+	}
+	return s
+}
+func (s *Set) AddInt64(items ...int64) *Set {
+	for _, v := range items {
+		s.idx[v] = Empty{}
+	}
+	return s
+}
+func (s *Set) AddUint(items ...uint) *Set {
+	for _, v := range items {
+		s.idx[v] = Empty{}
+	}
+	return s
+}
+func (s *Set) AddUint32(items ...uint32) *Set {
+	for _, v := range items {
+		s.idx[v] = Empty{}
+	}
+	return s
+}
+func (s *Set) AddUint64(items ...uint64) *Set {
+	for _, v := range items {
+		s.idx[v] = Empty{}
+	}
+	return s
+}
 
 func (s *Set) Remove(keys ...interface{}) *Set {
 	for _, v := range keys {
