@@ -2,10 +2,12 @@ package parallel
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDo(t *testing.T) {
@@ -180,6 +182,12 @@ func TestStreamDo(t *testing.T) {
 	}
 }
 
+type HashItem string
+
+func (s HashItem) GetKey() string {
+	return string(s)
+}
+
 func TestStreamDo_ReceiveFromChan(t *testing.T) {
 	tests := []struct {
 		caseDesc         string
@@ -243,14 +251,22 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 			caseDesc: "sanity-100-worker",
 			giveInputs: []interface{}{
 				"item1",
+				"item2",
+				"item3",
+				"item4",
+				"item1",
 			},
 			giveWorkNum: 100,
 			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				return item, nil
+				return fmt.Sprintf("%s-%d", item, workerIdx), nil
 			},
 			wantRets: []*StreamPayload{
-				{Result: "item1"},
+				{Result: "item1-0"},
+				{Result: "item2-1"},
+				{Result: "item3-2"},
+				{Result: "item4-3"},
+				{Result: "item1-4"},
 			},
 		},
 		{
@@ -267,6 +283,28 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 			wantRets: []*StreamPayload{
 				{Result: nil, Err: errors.New("expected err")},
 				{Result: nil, Err: errors.New("expected err")},
+			},
+		},
+		{
+			caseDesc: "sanity-100-hash-worker",
+			giveInputs: []interface{}{
+				HashItem("item1"),
+				HashItem("item2"),
+				HashItem("item3"),
+				HashItem("item4"),
+				HashItem("item1"),
+			},
+			giveWorkNum: 100,
+			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+				return fmt.Sprintf("%s-%d", item, workerIdx), nil
+			},
+			wantRets: []*StreamPayload{
+				{Result: "item1-55"},
+				{Result: "item2-17"},
+				{Result: "item3-7"},
+				{Result: "item4-36"},
+				{Result: "item1-55"},
 			},
 		},
 	}

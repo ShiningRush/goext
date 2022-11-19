@@ -20,6 +20,7 @@ type Option struct {
 	// --- stream options start
 	receiveDataExplicit bool
 	ignoreResult        bool
+	hashWorker          bool
 }
 type OptionOp func(opt *Option)
 
@@ -41,4 +42,8 @@ func ReceiveDataFromChan() OptionOp {
 	return func(opt *Option) {
 		opt.receiveDataExplicit = true
 	}
+}
+
+type KeyOwner interface {
+	GetKey() string
 }

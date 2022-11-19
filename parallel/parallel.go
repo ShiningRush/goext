@@ -3,6 +3,8 @@ package parallel
 import (
 	"runtime"
 	"sync"
+
+	"github.com/twmb/murmur3"
 )
 
 type Work func(workerIdx int) error
@@ -72,9 +74,17 @@ func ensureFreeSession(session *StreamSession) {
 func dispatch(inputChan <-chan interface{}, workerChanList []chan<- interface{}) {
 	go func() {
 		// if input could have identity, murmur3 would be better a solution than atomic increment, but we can not require that.
-		var autoIncrement uint
+		var autoIncrement uint64
 		for input := range inputChan {
-			workerChanList[autoIncrement%uint(len(workerChanList))] <- input
+			if k, ok := input.(KeyOwner); ok {
+				mur := murmur3.New32()
+				// write return no error
+				_, _ = mur.Write([]byte(k.GetKey()))
+				workerChanList[int(mur.Sum32())%len(workerChanList)] <- input
+				continue
+			}
+
+			workerChanList[autoIncrement%uint64(len(workerChanList))] <- input
 			autoIncrement++
 		}
 		for _, v := range workerChanList {
@@ -90,6 +100,7 @@ func initWorkers(work StreamWork, opt *Option) (workerChanList []chan<- interfac
 	var wg sync.WaitGroup
 	wg.Add(opt.workerNumber)
 	for i := 0; i < opt.workerNumber; i++ {
+		// we make each worker have own queue to instead of sharing same work queue, it can avoid chan race
 		workerCh := make(chan interface{})
 		workerChanList = append(workerChanList, workerCh)
 
