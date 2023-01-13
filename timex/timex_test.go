@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNow(t *testing.T) {
@@ -49,4 +50,51 @@ func TestAfter(t *testing.T) {
 	mClock.EXPECT().After(gomock.Any()).Return(nil)
 	MockClockImpl(mClock)
 	assert.Nil(t, After(time.Second))
+}
+
+func TestParseDuration(t *testing.T) {
+	tests := []struct {
+		name         string
+		giveText     string
+		wantDuration time.Duration
+		wantErr      require.ErrorAssertionFunc
+	}{
+		{
+			name:         "normal-hour",
+			giveText:     "4h",
+			wantDuration: time.Hour * 4,
+			wantErr:      require.NoError,
+		},
+		{
+			name:         "normal-minute",
+			giveText:     "4m",
+			wantDuration: time.Minute * 4,
+			wantErr:      require.NoError,
+		},
+		{
+			name:         "normal-second",
+			giveText:     "4s",
+			wantDuration: time.Second * 4,
+			wantErr:      require.NoError,
+		},
+		{
+			name:         "normal-ms",
+			giveText:     "4ms",
+			wantDuration: time.Millisecond * 4,
+			wantErr:      require.NoError,
+		},
+		{
+			name:     "not-support-week",
+			giveText: "4w",
+			wantErr:  require.Error,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			d, err := ParseDuration(tc.giveText)
+			tc.wantErr(t, err)
+			assert.Equal(t, tc.wantDuration, d)
+		})
+	}
 }
