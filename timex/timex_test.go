@@ -12,6 +12,8 @@ import (
 )
 
 func TestNow(t *testing.T) {
+	MockClockImpl(&realClock{})
+
 	xNow, realNow := Now(), time.Now()
 	assert.True(t, realNow.Sub(xNow).Milliseconds() < 1, "default implement should be same(gap is less than 1ms)")
 
@@ -26,6 +28,8 @@ func TestNow(t *testing.T) {
 }
 
 func TestAfter(t *testing.T) {
+	MockClockImpl(&realClock{})
+
 	xAfter, realAfter := After(time.Second), time.After(time.Second)
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -50,6 +54,7 @@ func TestAfter(t *testing.T) {
 	mClock.EXPECT().After(gomock.Any()).Return(nil)
 	MockClockImpl(mClock)
 	assert.Nil(t, After(time.Second))
+
 }
 
 func TestParseDuration(t *testing.T) {

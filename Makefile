@@ -7,7 +7,7 @@ install:
 .PHONY: tidy
 tidy:
 	go mod tidy
-	$(foreach dir,$(shell go list -f {{.Dir}} ./...),goimports -w $(dir);)
+	@$(foreach dir,$(shell go list -f {{.Dir}} ./...),goimports -w $(dir);)
 
 .PHONY: test
 test: tidy
