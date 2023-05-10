@@ -4,6 +4,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/shiningrush/goext/errx"
 	"github.com/twmb/murmur3"
 )
 
@@ -37,46 +38,62 @@ func Do(work Work, ops ...OptionOp) (errs []error) {
 	return
 }
 
-type StreamPayload struct {
-	Result interface{}
+type StreamPayloads[R any] []*StreamPayload[R]
+
+func (p StreamPayloads[R]) AggregateErr() error {
+	e := &errx.BatchErrors{}
+	for _, v := range p {
+		if v.HasError() {
+			e.Append(v.Err)
+		}
+	}
+
+	if e.HasError() {
+		return e
+	}
+	return nil
+}
+
+type StreamPayload[R any] struct {
+	Result R
 	Err    error
 }
 
-func (o *StreamPayload) HasError() bool {
+func (o *StreamPayload[R]) HasError() bool {
 	return o.Err != nil
 }
 
-type StreamWork func(workerIdx int, item interface{}) (ret interface{}, err error)
+type StreamWork[P, R any] func(workerIdx int, item P) (ret R, err error)
 
-func StreamDo(work StreamWork, ops ...OptionOp) *StreamSession {
+func StreamDo[P, R any](work StreamWork[P, R], ops ...OptionOp) *StreamSession[P, R] {
 	opt := InitialOption(ops)
 
-	inputChan := make(chan interface{})
+	inputChan := make(chan P)
 
 	workerChanList, receiveChan := initWorkers(work, opt)
-	dispatch(inputChan, workerChanList)
+	dispatch[P](inputChan, workerChanList)
 
-	s := &StreamSession{
+	s := &StreamSession[P, R]{
 		inputChan:         inputChan,
 		receiveChan:       receiveChan,
 		receiveChanClosed: make(chan struct{}),
 	}
-	runtime.SetFinalizer(s, ensureFreeSession)
+	runtime.SetFinalizer(s, ensureFreeSession[P, R])
 	if !opt.receiveDataExplicit {
 		s.initAutoReceive()
 	}
 	return s
 }
-func ensureFreeSession(session *StreamSession) {
+func ensureFreeSession[P, R any](session *StreamSession[P, R]) {
 	session.CompleteSend()
 }
 
-func dispatch(inputChan <-chan interface{}, workerChanList []chan<- interface{}) {
+func dispatch[P any](inputChan <-chan P, workerChanList []chan<- P) {
 	go func() {
 		// if input could have identity, murmur3 would be better a solution than atomic increment, but we can not require that.
 		var autoIncrement uint64
 		for input := range inputChan {
-			if k, ok := input.(KeyOwner); ok {
+			if k, ok := (interface{})(input).(KeyOwner); ok {
 				mur := murmur3.New32()
 				// write return no error
 				_, _ = mur.Write([]byte(k.GetKey()))
@@ -93,22 +110,22 @@ func dispatch(inputChan <-chan interface{}, workerChanList []chan<- interface{})
 	}()
 }
 
-func initWorkers(work StreamWork, opt *Option) (workerChanList []chan<- interface{}, retChan <-chan *StreamPayload) {
-	rawRetChan := make(chan *StreamPayload)
+func initWorkers[P, R any](work StreamWork[P, R], opt *Option) (workerChanList []chan<- P, retChan <-chan *StreamPayload[R]) {
+	rawRetChan := make(chan *StreamPayload[R])
 	retChan = rawRetChan
 
 	var wg sync.WaitGroup
 	wg.Add(opt.workerNumber)
 	for i := 0; i < opt.workerNumber; i++ {
 		// we make each worker have own queue to instead of sharing same work queue, it can avoid chan race
-		workerCh := make(chan interface{})
+		workerCh := make(chan P)
 		workerChanList = append(workerChanList, workerCh)
 
-		go func(idx int, inputCh <-chan interface{}) {
+		go func(idx int, inputCh <-chan P) {
 			for input := range inputCh {
 				ret, err := work(idx, input)
 				if !opt.ignoreResult {
-					rawRetChan <- &StreamPayload{
+					rawRetChan <- &StreamPayload[R]{
 						Result: ret,
 						Err:    err,
 					}

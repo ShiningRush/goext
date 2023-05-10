@@ -72,26 +72,26 @@ func TestDo(t *testing.T) {
 func TestStreamDo(t *testing.T) {
 	tests := []struct {
 		caseDesc         string
-		giveInputs       []interface{}
-		giveWork         StreamWork
+		giveInputs       []string
+		giveWork         StreamWork[string, string]
 		giveWorkNum      int
 		giveIgnoreResult bool
-		wantRets         []*StreamPayload
+		wantRets         []*StreamPayload[string]
 	}{
 		{
 			caseDesc: "sanity-default-worker",
-			giveInputs: []interface{}{
+			giveInputs: []string{
 				"item1",
 				"item2",
 				"item3",
 			},
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item string) (ret string, err error) {
 				assert.GreaterOrEqual(t, workerIdx, 0)
 
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return item, nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1"},
 				{Result: "item2"},
 				{Result: "item3"},
@@ -99,12 +99,12 @@ func TestStreamDo(t *testing.T) {
 		},
 		{
 			caseDesc: "sanity-default-worker-ignore-result",
-			giveInputs: []interface{}{
+			giveInputs: []string{
 				"item1",
 				"item2",
 				"item3",
 			},
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item string) (ret string, err error) {
 				assert.GreaterOrEqual(t, workerIdx, 0)
 
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
@@ -114,48 +114,48 @@ func TestStreamDo(t *testing.T) {
 		},
 		{
 			caseDesc: "sanity-1-worker",
-			giveInputs: []interface{}{
+			giveInputs: []string{
 				"item1",
 				"item2",
 			},
 			giveWorkNum: 1,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item string) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return item, nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1"},
 				{Result: "item2"},
 			},
 		},
 		{
 			caseDesc: "sanity-100-worker",
-			giveInputs: []interface{}{
+			giveInputs: []string{
 				"item1",
 			},
 			giveWorkNum: 100,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item string) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return item, nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1"},
 			},
 		},
 		{
 			caseDesc: "all-failed",
-			giveInputs: []interface{}{
+			giveInputs: []string{
 				"item1",
 				"item2",
 			},
 			giveWorkNum: 100,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item string) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				return nil, errors.New("expected err")
+				return "", errors.New("expected err")
 			},
-			wantRets: []*StreamPayload{
-				{Result: nil, Err: errors.New("expected err")},
-				{Result: nil, Err: errors.New("expected err")},
+			wantRets: []*StreamPayload[string]{
+				{Result: "", Err: errors.New("expected err")},
+				{Result: "", Err: errors.New("expected err")},
 			},
 		},
 	}
@@ -192,10 +192,10 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 	tests := []struct {
 		caseDesc         string
 		giveInputs       []interface{}
-		giveWork         StreamWork
+		giveWork         StreamWork[interface{}, string]
 		giveWorkNum      int
 		giveIgnoreResult bool
-		wantRets         []*StreamPayload
+		wantRets         []*StreamPayload[string]
 	}{
 		{
 			caseDesc: "sanity-default-worker",
@@ -204,13 +204,13 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				"item2",
 				"item3",
 			},
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item interface{}) (ret string, err error) {
 				assert.GreaterOrEqual(t, workerIdx, 0)
 
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				return item, nil
+				return item.(string), nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1"},
 				{Result: "item2"},
 				{Result: "item3"},
@@ -223,11 +223,11 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				"item2",
 				"item3",
 			},
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item interface{}) (ret string, err error) {
 				assert.GreaterOrEqual(t, workerIdx, 0)
 
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				return item, nil
+				return item.(string), nil
 			},
 			giveIgnoreResult: true,
 		},
@@ -238,11 +238,11 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				"item2",
 			},
 			giveWorkNum: 1,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item interface{}) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				return item, nil
+				return item.(string), nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1"},
 				{Result: "item2"},
 			},
@@ -257,11 +257,11 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				"item1",
 			},
 			giveWorkNum: 100,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item interface{}) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return fmt.Sprintf("%s-%d", item, workerIdx), nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1-0"},
 				{Result: "item2-1"},
 				{Result: "item3-2"},
@@ -276,13 +276,13 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				"item2",
 			},
 			giveWorkNum: 100,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item interface{}) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-				return nil, errors.New("expected err")
+				return "", errors.New("expected err")
 			},
-			wantRets: []*StreamPayload{
-				{Result: nil, Err: errors.New("expected err")},
-				{Result: nil, Err: errors.New("expected err")},
+			wantRets: []*StreamPayload[string]{
+				{Result: "", Err: errors.New("expected err")},
+				{Result: "", Err: errors.New("expected err")},
 			},
 		},
 		{
@@ -295,11 +295,11 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				HashItem("item1"),
 			},
 			giveWorkNum: 100,
-			giveWork: func(workerIdx int, item interface{}) (ret interface{}, err error) {
+			giveWork: func(workerIdx int, item interface{}) (ret string, err error) {
 				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
 				return fmt.Sprintf("%s-%d", item, workerIdx), nil
 			},
-			wantRets: []*StreamPayload{
+			wantRets: []*StreamPayload[string]{
 				{Result: "item1-55"},
 				{Result: "item2-17"},
 				{Result: "item3-7"},
@@ -329,7 +329,7 @@ func TestStreamDo_ReceiveFromChan(t *testing.T) {
 				session.CompleteSend()
 			}()
 
-			var rets []*StreamPayload
+			var rets []*StreamPayload[string]
 			for v := range session.ReceiveChan() {
 				rets = append(rets, v)
 			}
