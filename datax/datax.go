@@ -10,6 +10,14 @@ func NewSet() *Set {
 	}
 }
 
+func NewSetFrom[T any](items ...T) *Set {
+	s := NewSet()
+	for _, v := range items {
+		s.idx[v] = Empty{}
+	}
+	return s
+}
+
 type Set struct {
 	idx map[interface{}]Empty
 }
@@ -24,19 +32,19 @@ func (s *Set) Loop(f LoopSetFunc) {
 	}
 }
 
-func (s *Set) All() (items []interface{}) {
-	s.Loop(func(item interface{}) (breakLoop bool) {
+func (s *Set) All() (items []any) {
+	s.Loop(func(item any) (breakLoop bool) {
 		items = append(items, item)
 		return
 	})
 	return
 }
 
-func (s *Set) Has(item interface{}) bool {
+func (s *Set) Has(item any) bool {
 	_, ok := s.idx[item]
 	return ok
 }
-func (s *Set) Add(items ...interface{}) *Set {
+func (s *Set) Add(items ...any) *Set {
 	for _, v := range items {
 		s.idx[v] = Empty{}
 	}
@@ -92,7 +100,7 @@ func (s *Set) Remove(keys ...interface{}) *Set {
 	return s
 }
 
-func (s *Set) TryAdd(key interface{}) bool {
+func (s *Set) TryAdd(key any) bool {
 	if s.Has(key) {
 		return false
 	}
@@ -175,4 +183,59 @@ func (s *Set) Diff(another *Set) *Set {
 		return
 	})
 	return diffSet
+}
+
+// HasItem test if the "item" is in "lists"
+func HasItem[T comparable](lists []T, item T) bool {
+	for _, s := range lists {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+// IsSuperset test if the "src" is superset of "dest"
+func IsSuperset[T any](src, dest []T) bool {
+	srcSet := NewSetFrom(src...)
+	descSet := NewSetFrom(dest...)
+	return srcSet.IsSupersetOf(descSet)
+}
+
+// IsSubset test if the "src" is subset of "dest"
+func IsSubset[T any](src, dest []T) bool {
+	srcSet := NewSetFrom(src...)
+	descSet := NewSetFrom(dest...)
+	return srcSet.IsSubsetOf(descSet)
+}
+
+// IsProperSubset test if the "src" is proper subset of "dest"
+func IsProperSubset[T any](src, dest []T) bool {
+	srcSet := NewSetFrom(src...)
+	descSet := NewSetFrom(dest...)
+	return srcSet.IsProperSubsetOf(descSet)
+}
+
+// Intersect get intersection of two lists
+func Intersect[T any](aArr, bArr []T) (intersection []T) {
+	aSet := NewSetFrom(aArr...)
+	bSet := NewSetFrom(bArr...)
+
+	aSet.Intersect(bSet).Loop(func(item interface{}) (breakLoop bool) {
+		intersection = append(intersection, item.(T))
+		return
+	})
+	return
+}
+
+// Diff get differences of two strings
+func Diff[T any](aArr, bArr []T) (diff []T) {
+	aSet := NewSetFrom(aArr...)
+	bSet := NewSetFrom(bArr...)
+
+	aSet.Diff(bSet).Loop(func(item interface{}) (breakLoop bool) {
+		diff = append(diff, item.(T))
+		return
+	})
+	return
 }
