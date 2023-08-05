@@ -4,55 +4,30 @@ import "github.com/shiningrush/goext/datax"
 
 // HasItem test if the "item" is in "strs"
 func HasItem(strs []string, item string) bool {
-	for _, s := range strs {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return datax.HasItem(strs, item)
 }
 
 // IsSuperset test if the "src" is superset of "dest"
 func IsSuperset(src, dest []string) bool {
-	srcSet := datax.NewSet().AddString(src...)
-	descSet := datax.NewSet().AddString(dest...)
-	return srcSet.IsSupersetOf(descSet)
+	return datax.IsSuperset(src, dest)
 }
 
 // IsSubset test if the "src" is subset of "dest"
 func IsSubset(src, dest []string) bool {
-	srcSet := datax.NewSet().AddString(src...)
-	descSet := datax.NewSet().AddString(dest...)
-	return srcSet.IsSubsetOf(descSet)
+	return datax.IsSubset(src, dest)
 }
 
 // IsProperSubset test if the "src" is proper subset of "dest"
 func IsProperSubset(src, dest []string) bool {
-	srcSet := datax.NewSet().AddString(src...)
-	descSet := datax.NewSet().AddString(dest...)
-	return srcSet.IsProperSubsetOf(descSet)
+	return datax.IsProperSubset(src, dest)
 }
 
 // Intersect get intersection of two strings
 func Intersect(aArr, bArr []string) (intersection []string) {
-	aSet := datax.NewSet().AddString(aArr...)
-	bSet := datax.NewSet().AddString(bArr...)
-
-	aSet.Intersect(bSet).Loop(func(item interface{}) (breakLoop bool) {
-		intersection = append(intersection, item.(string))
-		return
-	})
-	return
+	return datax.Intersect(aArr, bArr)
 }
 
 // Diff get differences of two strings
 func Diff(aArr, bArr []string) (diff []string) {
-	aSet := datax.NewSet().AddString(aArr...)
-	bSet := datax.NewSet().AddString(bArr...)
-
-	aSet.Diff(bSet).Loop(func(item interface{}) (breakLoop bool) {
-		diff = append(diff, item.(string))
-		return
-	})
-	return
+	return datax.Diff(aArr, bArr)
 }

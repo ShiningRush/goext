@@ -9,6 +9,10 @@ var (
 	DefaultSingleton = NewJobDemon()
 )
 
+func RegisterJobDesc(desc *JobDescriptor) {
+	DefaultSingleton.RegisterJobDesc(desc)
+}
+
 func RegisterJob(name string, jobType JobType, jobFunc JobFunc) {
 	DefaultSingleton.RegisterJob(name, jobType, jobFunc)
 }
@@ -34,18 +38,18 @@ func NewJobDemon() *JobDemon {
 }
 
 type JobDemon struct {
-	jobs []*JobDesc
+	jobs []*JobDescriptor
 
 	closeChan chan struct{}
 }
 
-type JobDesc struct {
+type JobDescriptor struct {
 	Name string
 	Type JobType
 	Func JobFunc
 }
 
-func (d *JobDesc) Do(ctx context.Context, closeChan chan struct{}) {
+func (d *JobDescriptor) Do(ctx context.Context, closeChan chan struct{}) {
 	if d.Type.Once != nil {
 		if !d.Type.Once.AlwaysStart && d.Type.fired {
 			return
@@ -90,8 +94,12 @@ type OnceJobDesc struct {
 	AlwaysStart bool
 }
 
+func (d *JobDemon) RegisterJobDesc(jobDesc *JobDescriptor) {
+	d.jobs = append(d.jobs, jobDesc)
+}
+
 func (d *JobDemon) RegisterJob(name string, jobType JobType, jobFunc JobFunc) {
-	d.jobs = append(d.jobs, &JobDesc{
+	d.jobs = append(d.jobs, &JobDescriptor{
 		Name: name,
 		Type: jobType,
 		Func: jobFunc,

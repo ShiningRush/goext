@@ -22,12 +22,16 @@ func TestJobDemon(t *testing.T) {
 		onceJobFlag = true
 	})
 
-	RegisterJob("start-job", JobType{Once: &OnceJobDesc{
-		Delay:       800 * time.Millisecond,
-		AlwaysStart: true,
-	}}, func(ctx context.Context) {
-		wg.Done()
-		startJobFlag = true
+	RegisterJobDesc(&JobDescriptor{
+		Name: "start-job",
+		Type: JobType{Once: &OnceJobDesc{
+			Delay:       800 * time.Millisecond,
+			AlwaysStart: true,
+		}},
+		Func: func(ctx context.Context) {
+			wg.Done()
+			startJobFlag = true
+		},
 	})
 
 	RegisterJob("interval-job", JobType{Interval: &IntervalJobDesc{Interval: 200 * time.Millisecond}}, func(ctx context.Context) {
