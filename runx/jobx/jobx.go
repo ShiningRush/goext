@@ -3,6 +3,8 @@ package jobx
 import (
 	"context"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 var (
@@ -74,6 +76,25 @@ func (d *JobDescriptor) Do(ctx context.Context, closeChan chan struct{}) {
 			}
 		}()
 	}
+
+	if d.Type.Cron != nil {
+		c := cron.New(
+			cron.WithParser(cron.NewParser(cron.SecondOptional|cron.Minute|cron.Hour|cron.Dom|cron.Month|cron.Dow|cron.Descriptor)),
+			cron.WithLocation(d.Type.Cron.location()),
+		)
+		if _, err := c.AddFunc(d.Type.Cron.Spec, func() {
+			d.Func(ctx)
+		}); err != nil {
+			return
+		}
+
+		c.Start()
+		go func() {
+			<-closeChan
+			stopCtx := c.Stop()
+			<-stopCtx.Done()
+		}()
+	}
 }
 
 type JobFunc func(ctx context.Context)
@@ -81,6 +102,7 @@ type JobFunc func(ctx context.Context)
 type JobType struct {
 	Once     *OnceJobDesc
 	Interval *IntervalJobDesc
+	Cron     *CronJobDesc
 
 	fired bool
 }
@@ -92,6 +114,18 @@ type IntervalJobDesc struct {
 type OnceJobDesc struct {
 	Delay       time.Duration
 	AlwaysStart bool
+}
+
+type CronJobDesc struct {
+	Spec     string
+	Location *time.Location
+}
+
+func (d *CronJobDesc) location() *time.Location {
+	if d.Location != nil {
+		return d.Location
+	}
+	return time.Local
 }
 
 func (d *JobDemon) RegisterJobDesc(jobDesc *JobDescriptor) {
