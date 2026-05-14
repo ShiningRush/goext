@@ -17,7 +17,7 @@ func TestJobDemon(t *testing.T) {
 	onceJobFlag, startJobFlag, intervalJobFlag := false, false, false
 	stopped := false
 	RegisterJob("once-job", JobType{Once: &OnceJobDesc{}}, func(ctx context.Context) {
-		assert.LessOrEqual(t, time.Now().Sub(now).Milliseconds(), int64(1000))
+		assert.LessOrEqual(t, time.Since(now).Milliseconds(), int64(1000))
 		wg.Done()
 		onceJobFlag = true
 	})
@@ -58,4 +58,30 @@ func TestJobDemon(t *testing.T) {
 	assert.False(t, onceJobFlag)
 	assert.True(t, startJobFlag)
 	assert.False(t, intervalJobFlag)
+}
+
+func TestJobDemonCron(t *testing.T) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	demon := NewJobDemon()
+	cronJobFlag := false
+	stopped := false
+
+	demon.RegisterJob("cron-job", JobType{Cron: &CronJobDesc{Spec: "* * * * * *"}}, func(ctx context.Context) {
+		if stopped {
+			assert.Fail(t, "cron-job should not be fired after stopped")
+		}
+
+		if !cronJobFlag {
+			wg.Done()
+			cronJobFlag = true
+		}
+	})
+
+	demon.Start()
+	wg.Wait()
+	demon.Stop()
+	stopped = true
+	assert.True(t, cronJobFlag)
 }
