@@ -2,6 +2,7 @@ package jobx
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -27,6 +28,10 @@ func Stop() {
 	DefaultSingleton.Stop()
 }
 
+func Close() {
+	DefaultSingleton.Close()
+}
+
 func RemoveJob(name string) {
 	DefaultSingleton.RemoveJob(name)
 }
@@ -42,7 +47,9 @@ func NewJobDemon() *JobDemon {
 type JobDemon struct {
 	jobs []*JobDescriptor
 
-	closeChan chan struct{}
+	cancel     context.CancelFunc
+	scheduleWg sync.WaitGroup
+	runWg      sync.WaitGroup
 }
 
 type JobDescriptor struct {
@@ -51,28 +58,88 @@ type JobDescriptor struct {
 	Func JobFunc
 }
 
+// Do starts the job and stops scheduling it when closeChan is closed.
+//
+// Deprecated: register the descriptor with JobDemon and call Start instead.
 func (d *JobDescriptor) Do(ctx context.Context, closeChan chan struct{}) {
+	ctx, cancel := context.WithCancel(ctx)
+	var scheduleWg sync.WaitGroup
+	var runWg sync.WaitGroup
+
+	d.do(ctx, &scheduleWg, &runWg)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-closeChan:
+			cancel()
+		}
+	}()
+	go func() {
+		scheduleWg.Wait()
+		runWg.Wait()
+		cancel()
+	}()
+}
+
+func (d *JobDescriptor) do(ctx context.Context, scheduleWg *sync.WaitGroup, runWg *sync.WaitGroup) {
+	run := func() {
+		runWg.Add(1)
+		defer runWg.Done()
+		d.Func(ctx)
+	}
+
 	if d.Type.Once != nil {
 		if !d.Type.Once.AlwaysStart && d.Type.fired {
 			return
 		}
 
-		time.AfterFunc(d.Type.Once.Delay, func() {
-			d.Func(ctx)
+		scheduleWg.Add(1)
+		go func() {
+			defer scheduleWg.Done()
+
+			timer := time.NewTimer(d.Type.Once.Delay)
+			defer timer.Stop()
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-timer.C:
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			run()
 			d.Type.fired = true
-		})
+		}()
 		return
 	}
 
 	if d.Type.Interval != nil {
+		scheduleWg.Add(1)
 		go func() {
+			defer scheduleWg.Done()
+
 			for {
+				timer := time.NewTimer(d.Type.Interval.Interval)
 				select {
-				case <-closeChan:
+				case <-ctx.Done():
+					timer.Stop()
 					return
-				case <-time.After(d.Type.Interval.Interval):
-					d.Func(ctx)
+				case <-timer.C:
 				}
+
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				run()
 			}
 		}()
 	}
@@ -83,14 +150,23 @@ func (d *JobDescriptor) Do(ctx context.Context, closeChan chan struct{}) {
 			cron.WithLocation(d.Type.Cron.location()),
 		)
 		if _, err := c.AddFunc(d.Type.Cron.Spec, func() {
-			d.Func(ctx)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			run()
 		}); err != nil {
 			return
 		}
 
 		c.Start()
+		scheduleWg.Add(1)
 		go func() {
-			<-closeChan
+			defer scheduleWg.Done()
+
+			<-ctx.Done()
 			stopCtx := c.Stop()
 			<-stopCtx.Done()
 		}()
@@ -141,23 +217,30 @@ func (d *JobDemon) RegisterJob(name string, jobType JobType, jobFunc JobFunc) {
 }
 
 func (d *JobDemon) Start() {
-	if d.closeChan != nil {
+	if d.cancel != nil {
 		return
 	}
 
-	d.closeChan = make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	d.cancel = cancel
 	for _, job := range d.jobs {
-		job.Do(context.Background(), d.closeChan)
+		job.do(ctx, &d.scheduleWg, &d.runWg)
 	}
 }
 
 func (d *JobDemon) Stop() {
-	if d.closeChan == nil {
+	if d.cancel == nil {
 		return
 	}
 
-	close(d.closeChan)
-	d.closeChan = nil
+	d.cancel()
+	d.cancel = nil
+}
+
+func (d *JobDemon) Close() {
+	d.Stop()
+	d.scheduleWg.Wait()
+	d.runWg.Wait()
 }
 
 // RemoveJob remove job by name

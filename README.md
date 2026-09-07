@@ -413,6 +413,7 @@ You can use the package-level singleton via:
 - `RegisterJobDesc`
 - `Start`
 - `Stop`
+- `Close`
 - `RemoveJob`
 - `ClearJobs`
 
@@ -441,7 +442,7 @@ func main() {
 	})
 
 	jobx.Start()
-	defer jobx.Stop()
+	defer jobx.Close()
 }
 ```
 
@@ -474,7 +475,8 @@ jobx.RegisterJob("daily-report", jobx.JobType{
 Notes:
 
 - `Start()` is idempotent while the scheduler is already running
-- `Stop()` stops interval and cron jobs by closing the shared channel
+- `Stop()` cancels the scheduler and running job contexts without waiting
+- `Close()` calls `Stop()` and waits for running jobs to finish
 - A once job runs only once by default; set `AlwaysStart: true` to run it again after restarting
 
 ## timex
