@@ -25,6 +25,6 @@ jobs:
         run: go test -coverprofile coverage.txt -covermode=atomic -v ./...
 
       - name: Upload Coverage report to CodeCov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v7
         with:
-          file: ./coverage.txt
+          files: ./coverage.txt
